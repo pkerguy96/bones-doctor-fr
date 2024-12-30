@@ -1,4 +1,3 @@
-//@ts-nocheck
 import {
   Autocomplete,
   Box,
@@ -9,11 +8,12 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   BodySides,
   CACHE_KEY_XrayPreferences,
+  CACHE_KEY_XraysWithCategoryBACK,
   ViewTypes,
   XRayTypes,
 } from "../../constants";
@@ -21,7 +21,11 @@ import { useLocation, useNavigate } from "react-router";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import addGlobal from "../../hooks/addGlobal";
-import { XrayProps, xrayApiClient } from "../../services/XrayService";
+import {
+  XrayProps,
+  fetchxrayfirststep,
+  xrayApiClient,
+} from "../../services/XrayService";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import Table from "@mui/material/Table";
@@ -39,6 +43,10 @@ import {
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { useQueryClient } from "@tanstack/react-query";
 import useOperationStore from "../../zustand/usePatientOperation";
+import updateItem from "../../hooks/updateItem";
+import { noteoperationApiClient } from "../../services/OperationService";
+import getGlobalById from "../../hooks/getGlobalById";
+import CheckAction from "../../components/CheckAction";
 
 const XrayDemand = ({ onNext }) => {
   const { addOrUpdateOperation, findPatientById } = useOperationStore();
@@ -46,18 +54,31 @@ const XrayDemand = ({ onNext }) => {
   const queryClient = useQueryClient();
   const { showSnackbar } = useSnackbarStore();
   const addMutation = addGlobal({} as XrayProps, xrayApiClient, undefined);
+  const checkMutation = updateItem({}, noteoperationApiClient);
+  const hasCalledNext = useRef(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const patient_id = queryParams.get("id");
+  const operation_id = queryParams.get("operation_id");
+  const [xrays, setXrays] = useState([]);
+  const patient = findPatientById(patient_id);
   const { data, refetch, isLoading } = getGlobal(
     {} as XrayPreferencesResponse,
     CACHE_KEY_XrayPreferences,
     XrayPreferenceApiClient,
     undefined
   );
-  const location = useLocation();
-  const navigate = useNavigate();
-  const queryParams = new URLSearchParams(location.search);
-  const patient_id = queryParams.get("id");
-  const [xrays, setXrays] = useState([]);
-  const patient = findPatientById(patient_id);
+  const { data: HistoryXray, isLoading: isLoading2 } = operation_id
+    ? getGlobalById(
+        {} as any,
+        CACHE_KEY_XraysWithCategoryBACK,
+        fetchxrayfirststep,
+        { refetchOnWindowFocus: false },
+        parseInt(operation_id!)
+      )
+    : {};
+
   if (!patient_id) {
     return (
       <Typography variant="h6" color="error" align="center">
@@ -103,7 +124,7 @@ const XrayDemand = ({ onNext }) => {
 
   const addRow = () => {
     const { body_side, view_type, xray_name } = getValues();
-    if (!xray_name || !xray_name.length) {
+    if (!xray_name) {
       showSnackbar("Choisissez au moins une radiographie", "error");
       return;
     }
@@ -111,23 +132,62 @@ const XrayDemand = ({ onNext }) => {
       showSnackbar("Choisissez au moins un Type de vue", "error");
       return;
     }
-    setXrays([...xrays, { body_side, view_type, xray_name, id: xrays.length }]);
+    setXrays([
+      ...xrays,
+      { body_side, view_type, xray_name: [xray_name], id: xrays.length },
+    ]);
     reset({ xray_name: [], view_type: [], body_side: [] });
   };
 
   const removeXRay = (id) => {
     setXrays((old) => old.filter((e) => e.id !== id));
   };
-  useEffect(() => {
-    if (patient) {
-      const url = `/Patients/Xray?operation_id=${patient.operationId}&id=${patient.patientId}`;
+  const handleSkip = async () => {
+    if (operation_id) return onNext();
+    checkMutation.mutateAsync(
+      { data: {}, id: parseInt(patient_id) },
+      {
+        onSuccess: (data: any) => {
+          navigate(`?id=${patient_id}&operation_id=${data.data}`, {
+            replace: true,
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["Waitinglist"],
+            exact: false,
+          });
+          onNext();
+        },
+        onError: () => {
+          console.log("errorrrr");
+        },
+      }
+    );
+  };
+
+  /*   useEffect(() => {
+    console.log("====================================");
+    console.log(patient);
+    console.log("====================================");
+    if (patient && !hasCalledNext.current) {
+      const url = `?operation_id=${patient.operationId}&id=${patient.patientId}`;
       navigate(url, {
         replace: true,
       });
 
       onNext();
+      hasCalledNext.current = true;
     }
-  }, [patient]);
+  }, [patient]); */
+
+  const create = CheckAction(() => {
+    setXrays(
+      HistoryXray.map((xray: any) => ({
+        body_side: xray.body_side ? xray.body_side.split(",") : [],
+        view_type: xray.view_type ? xray.view_type.split(",") : [],
+        xray_name: [xray.xray_name],
+      }))
+    );
+  }, HistoryXray);
   if (isLoading) return <LoadingSpinner />;
 
   return (
@@ -153,28 +213,12 @@ const XrayDemand = ({ onNext }) => {
                 render={({ field }) => (
                   <Autocomplete
                     className="bg-white"
-                    multiple
                     id="tags-filled"
                     options={data.map((option) => option.xray_name)}
-                    defaultValue={[]}
-                    value={field.value || []}
-                    onChange={(event, newValue) => {
-                      console.log(newValue);
-                      field.onChange(newValue);
-                    }}
-                    freeSolo
-                    renderTags={(value: readonly string[], getTagProps) =>
-                      value.map((option: string, index: number) => {
-                        const { key, ...tagProps } = getTagProps({ index });
-                        return (
-                          <Chip
-                            variant="outlined"
-                            label={option}
-                            key={key}
-                            {...tagProps}
-                          />
-                        );
-                      })
+                    defaultValue=""
+                    value={field.value || ""}
+                    onChange={(event, newValue) =>
+                      field.onChange(newValue || "")
                     }
                     renderInput={(params) => (
                       <TextField
@@ -344,7 +388,7 @@ const XrayDemand = ({ onNext }) => {
             className="w-full md:w-max !px-10 !py-3 rounded-lg "
             variant="outlined"
             onClick={() => {
-              onNext();
+              handleSkip();
             }}
           >
             <p className="text-sm ">Passer</p>

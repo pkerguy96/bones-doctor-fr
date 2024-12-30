@@ -26,10 +26,7 @@ class OperationStepsController extends Controller
     /* First step we create op */
     public function storeOpNote(Request $request, $id)
     {
-        $validated = $request->validate([
-            'note' => 'nullable|string',
-            'operation' => 'nullable'
-        ]);
+
 
         try {
             // Find the patient or throw an exception
@@ -40,15 +37,6 @@ class OperationStepsController extends Controller
             $operation = isset($request->operation) ? Operation::findorfail($request->operation) : Operation::create([
                 'patient_id' => $patient->id,
             ]);
-
-            // If note exists, process it
-            if (!empty($validated['note'])) {
-                OperationNote::create([
-                    'operation_id' => $operation->id,
-                    'note' => $validated['note'],
-                    'patient_id' => $patient->id,
-                ]);
-            }
 
             // Update or create a WaitingRoom entry
             $waiting = WaitingRoom::where('patient_id', $patient->id)->first();
@@ -218,14 +206,14 @@ class OperationStepsController extends Controller
     public function fetchNote($operation_id)
     {
 
-        $data = OperationNote::where('operation_id', $operation_id)->first() ?? [];
+        $data = Xray::where('operation_id', $operation_id)->get() ?? [];
         return $this->success($data, null, 200);
     }
     public function fetchXrays($operation_id)
     {
         try {
             $data = Xray::where('operation_id', $operation_id)
-                ->select('id', 'xray_name', 'xray_type', 'price')
+                ->select('id', 'xray_name', 'view_type', 'body_side', 'price')
                 ->get();
             if ($data->isEmpty()) {
                 return $this->success([], 'No X-rays found', 200);

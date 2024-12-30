@@ -16,11 +16,10 @@ interface StepperComponentProps {
 }
 
 const steps = [
-  "Clinique",
-  "Paraclinique",
-  "Examen demandé",
-  "Bilan",
+  "Radiographie",
   "Ordonance",
+  "Bilan",
+  "Document",
   "Rendez-vous",
   "Paiement",
 ];
