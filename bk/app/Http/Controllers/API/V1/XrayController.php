@@ -45,29 +45,44 @@ class XrayController extends Controller
             // Validate request data
             $validatedData = $request->validated();
 
-            $xrayItems = $validatedData['xrays']; // Expecting 'xrays' as an array
+            $xrayItems = $validatedData['xrays'];
             $totalPrice = 0;
 
             // Create the operation record first
             $operation = Operation::create([
                 'patient_id' => $validatedData['patient_id'],
-                'total_cost' => 0, // Initialize with 0, will be updated later
+                'total_cost' => 0,
                 'is_paid' => false,
                 'note' => $validatedData['note'] ?? null,
             ]);
 
             foreach ($xrayItems as $xray) {
-                $totalPrice += $xray['price'];
-                $xrayData = [
-                    'patient_id' => $validatedData['patient_id'],
-                    'operation_id' => $operation->id,
-                    'xray_type' => $xray['type'],
-                    'xray_name' => $xray['name'],
-                    'price' => $xray['price'],
-                    'note' => $xray['note'],
+                // Process each xray entry
+                foreach ($xray['xray_name'] as $type) {
+                    $xrayPreference = Xraypreference::where('xray_name', $type)->first();
 
-                ];
-                Xray::create($xrayData);
+                    if (!$xrayPreference) {
+                        return $this->error(null, "Type de radiographie '{$type}' non trouvé dans les préférences", 404);
+                    }
+
+                    // Calculate the total price
+                    $totalPrice += $xrayPreference->price;
+
+                    // Prepare and store X-ray data
+                    $xrayData = [
+                        'patient_id' => $validatedData['patient_id'],
+                        'operation_id' => $operation->id,
+                        'xray_name' => $type,
+                        'view_type' => implode(',', $xray['view_type']), // Combine view types into a string
+                        'body_side' => isset($xray['body_side']) ? implode(',', $xray['body_side']) : null,
+                        'type' => $validatedData['type'] ?? 'xray',
+                        'note' => $validatedData['note'] ?? null,
+                        'price' => $xrayPreference->price,
+                        'xray_preference_id' => $xrayPreference->id,
+                    ];
+
+                    Xray::create($xrayData);
+                }
             }
 
             // Update the operation total cost
@@ -87,9 +102,18 @@ class XrayController extends Controller
                     'entry_time' => Carbon::now()
                 ]);
             }
+            $nurses = User::where('role', 'nurse')->get();
+            $patient = Patient::where('id', $request->input('patient_id'))->first(['nom', 'prenom']);
 
-
-
+            foreach ($nurses as $nurse) {
+                Notification::create([
+                    'user_id' => $nurse->id,
+                    'title' => 'Une radiographie est disponible de ' . $patient->nom . ' ' . $patient->prenom,
+                    'is_read' => false,
+                    'type' => 'xray',
+                    "target_id" =>  $operation->id
+                ]);
+            }
             return $this->success($operation->id, 'Radiographies enregistrées avec succès', 201);
         } catch (\Throwable $th) {
             Log::error('Error storing x-ray data: ' . $th->getMessage());

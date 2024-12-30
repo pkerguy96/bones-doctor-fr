@@ -102,8 +102,8 @@ const XrayDemand = ({ onNext }) => {
   };
 
   const addRow = () => {
-    const { body_side, view_type, xray_type } = getValues();
-    if (!xray_type || !xray_type.length) {
+    const { body_side, view_type, xray_name } = getValues();
+    if (!xray_name || !xray_name.length) {
       showSnackbar("Choisissez au moins une radiographie", "error");
       return;
     }
@@ -111,9 +111,10 @@ const XrayDemand = ({ onNext }) => {
       showSnackbar("Choisissez au moins un Type de vue", "error");
       return;
     }
-    setXrays([...xrays, { body_side, view_type, xray_type, id: xrays.length }]);
-    reset({ xray_type: [], view_type: [], body_side: [] });
+    setXrays([...xrays, { body_side, view_type, xray_name, id: xrays.length }]);
+    reset({ xray_name: [], view_type: [], body_side: [] });
   };
+
   const removeXRay = (id) => {
     setXrays((old) => old.filter((e) => e.id !== id));
   };
@@ -123,11 +124,12 @@ const XrayDemand = ({ onNext }) => {
       navigate(url, {
         replace: true,
       });
-      //  window.history.replaceState(null, "", url);
-      onNext(); // Proceed to the next step
+
+      onNext();
     }
   }, [patient]);
   if (isLoading) return <LoadingSpinner />;
+
   return (
     <Paper className="!p-6 w-full flex flex-col gap-4">
       <Box
@@ -146,17 +148,20 @@ const XrayDemand = ({ onNext }) => {
           <Box className="w-full lg:w-0 lg:flex-1 flex flex-col gap-2 md:flex-row md:flex-wrap items-center">
             <FormControl className="w-full md:flex-1">
               <Controller
-                name="xray_type"
+                name="xray_name"
                 control={control}
                 render={({ field }) => (
                   <Autocomplete
                     className="bg-white"
                     multiple
                     id="tags-filled"
-                    options={data.map((option) => option.xray_type)}
+                    options={data.map((option) => option.xray_name)}
                     defaultValue={[]}
                     value={field.value || []}
-                    onChange={(event, newValue) => field.onChange(newValue)}
+                    onChange={(event, newValue) => {
+                      console.log(newValue);
+                      field.onChange(newValue);
+                    }}
                     freeSolo
                     renderTags={(value: readonly string[], getTagProps) =>
                       value.map((option: string, index: number) => {
@@ -276,38 +281,44 @@ const XrayDemand = ({ onNext }) => {
           </Button>
         </Box>
         <Box>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Radiographie</TableCell>
-                <TableCell>Vue</TableCell>
-                <TableCell>Côté</TableCell>
-                <TableCell style={{ width: 100 }} align="center">
-                  Action
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {xrays.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell component="th" scope="row">
-                    {row.xray_type.join(", ")}
-                  </TableCell>
-                  <TableCell>{row.view_type?.join(", ")}</TableCell>
-                  <TableCell>{row.body_side?.join(", ") ?? ""}</TableCell>
-                  <TableCell>
-                    <Button onClick={() => removeXRay(row.id)}>
-                      <DeleteOutlineIcon
-                        color="error"
-                        className="pointer-events-none"
-                        fill="currentColor"
-                      />
-                    </Button>
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            className="border border-gray-300"
+          >
+            <Table sx={{ minWidth: 650 }} aria-label="simple table">
+              <TableHead className="bg-gray-200">
+                <TableRow>
+                  <TableCell>Radiographie</TableCell>
+                  <TableCell>Vue</TableCell>
+                  <TableCell>Côté</TableCell>
+                  <TableCell style={{ width: 100 }} align="center">
+                    Action
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {xrays.map((row) => (
+                  <TableRow key={row.id} className="border-t border-gray-300">
+                    <TableCell component="th" scope="row">
+                      {row.xray_name.join(", ")}
+                    </TableCell>
+                    <TableCell>{row.view_type?.join(", ")}</TableCell>
+                    <TableCell>{row.body_side?.join(", ") ?? ""}</TableCell>
+                    <TableCell>
+                      <Button onClick={() => removeXRay(row.id)}>
+                        <DeleteOutlineIcon
+                          color="error"
+                          className="pointer-events-none"
+                          fill="currentColor"
+                        />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Box>
         <Box className="w-full flex flex-col gap-2 md:flex-row md:flex-wrap items-center">
           <FormControl className="w-full md:flex-1">

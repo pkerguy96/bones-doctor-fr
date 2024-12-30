@@ -2,7 +2,7 @@ import { APIClient } from "./Http";
 
 export interface XrayProps {
   patient_id?: string;
-  xray_type: string[];
+  xray_name: string[];
   view_type: string[];
   body_side: string[];
   note?: string;
@@ -31,7 +31,7 @@ export interface XrayPreferencesByCategory {
     price: string;
   }[];
 }
-export const xrayApiClient = new APIClient<XrayProps>("StoreParaclinique");
+export const xrayApiClient = new APIClient<XrayProps>("xray");
 export const updateParacliniqueApiClient = new APIClient<any>(
   "updateParaclinique"
 );

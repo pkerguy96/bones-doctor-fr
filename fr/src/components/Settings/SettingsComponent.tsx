@@ -50,19 +50,19 @@ const SettingsComponent = () => {
       permissions: ["doctor", "access_op_settings"],
     },
     {
-      name: "Gestion paraclinique",
+      name: "Gestion des radiographie",
       url: "/Settings/Xrays",
       icon: LocalHospitalOutlinedIcon,
       checkPermissions: true,
       permissions: ["doctor", "access_xray_settings"],
     },
-    {
+    /*  {
       name: "Gestion des Examens Demandés",
       url: "/Settings/Examen",
       icon: NoteAltOutlinedIcon,
       checkPermissions: true,
       permissions: ["doctor"],
-    },
+    }, */
     {
       name: "Gestion des Analyses",
       url: "/Settings/Blood",

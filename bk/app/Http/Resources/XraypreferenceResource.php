@@ -16,12 +16,9 @@ class XraypreferenceResource extends JsonResource
 
     public function toArray(Request $request): array
     {
-
-
         return [
             "id" => $this->id,
-            "category" => $this->xray_category?->name, // Safely access name
-            "xray_type" => $this->xray_type,
+            "xray_name" => $this->xray_name,
             "price" => $this->price,
         ];
     }

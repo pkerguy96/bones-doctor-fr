@@ -15,14 +15,18 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('patient_id');
             $table->unsignedBigInteger('operation_id')->nullable();
-            $table->string('xray_type')->nullable();
+            $table->unsignedBigInteger('xray_preference_id')->nullable();
             $table->string('xray_name')->nullable();
+            $table->string('view_type')->nullable();
+            $table->string('body_side')->nullable();
+            $table->string('type')->default('xray');
             $table->text('note')->nullable();
             $table->decimal('price', 8, 2)->nullable();
             $table->softDeletes();
             $table->timestamps();
             $table->foreign('patient_id')->references('id')->on('patients');
             $table->foreign('operation_id')->references('id')->on('operations')->onDelete('cascade');
+            $table->foreign('xray_preference_id')->references('id')->on('xraypreferences');
         });
     }
 

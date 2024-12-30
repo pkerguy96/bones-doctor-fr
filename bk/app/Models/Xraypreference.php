@@ -15,9 +15,4 @@ class Xraypreference extends Model
     {
         return $this->hasMany(Xray::class, 'xray_preference_id');
     }
-
-    public function xray_category()
-    {
-        return $this->belongsTo(XrayCategory::class, 'xray_category_id');
-    }
 }

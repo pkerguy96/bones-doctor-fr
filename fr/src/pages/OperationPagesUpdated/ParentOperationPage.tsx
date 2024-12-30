@@ -9,6 +9,8 @@ import Cliniquerensignement from "./Cliniquerensignement";
 import OperationOrdonance from "./OperationOrdonance";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router";
+import XrayDemand from "../OperationPages/XrayDemand";
+import DocumentPage from "../OperationPages/DocumentPage";
 
 const ParentOperationPage = () => {
   const [activeStep, setActiveStep] = useState(0);
@@ -25,7 +27,21 @@ const ParentOperationPage = () => {
   return (
     <div className="flex flex-col w-full gap-2">
       <StepperComponant activeStep={activeStep} setActiveStep={setActiveStep} />
-      {activeStep === 0 && (
+      {activeStep === 0 && <XrayDemand onNext={handleNext} />}
+      {activeStep === 1 && (
+        <OperationOrdonance onNext={handleNext} onBack={handleBack} />
+      )}
+      {activeStep === 2 && (
+        <BloodTest onNext={handleNext} onBack={handleBack} />
+      )}
+      {activeStep === 3 && <DocumentPage onNext={handleNext} />}
+      {activeStep === 4 && (
+        <AppointmentStepPage onNext={handleNext} onBack={handleBack} />
+      )}
+      {activeStep === 5 && (
+        <VisiteValidation onNext={handleNext} onBack={handleBack} />
+      )}
+      {/* {activeStep === 0 && (
         <Cliniquerensignement onNext={handleNext} onBack={handleBack} />
       )}
       {activeStep === 1 && (
@@ -33,19 +49,7 @@ const ParentOperationPage = () => {
       )}
       {activeStep === 2 && (
         <ExamenDemander onNext={handleNext} onBack={handleBack} />
-      )}
-      {activeStep === 3 && (
-        <BloodTest onNext={handleNext} onBack={handleBack} />
-      )}
-      {activeStep === 4 && (
-        <OperationOrdonance onNext={handleNext} onBack={handleBack} />
-      )}
-      {activeStep === 5 && (
-        <AppointmentStepPage onNext={handleNext} onBack={handleBack} />
-      )}
-      {activeStep === 6 && (
-        <VisiteValidation onNext={handleNext} onBack={handleBack} />
-      )}
+      )} */}
     </div>
   );
 };

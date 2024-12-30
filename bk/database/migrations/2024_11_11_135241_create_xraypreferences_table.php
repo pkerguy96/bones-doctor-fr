@@ -13,12 +13,10 @@ return new class extends Migration
     {
         Schema::create('xraypreferences', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('xray_category_id');
-            $table->string('xray_type');
+            $table->string('xray_name');
             $table->decimal('price', 8, 2)->nullable();
             $table->softDeletes();
             $table->timestamps();
-            $table->foreign('xray_category_id')->references('id')->on('xray_categories');
         });
     }
 
