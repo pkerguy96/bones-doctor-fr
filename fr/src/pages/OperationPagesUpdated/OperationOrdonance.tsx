@@ -24,7 +24,7 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import { items } from "../../services/Medicines.json";
-import { useQueryClient } from "@tanstack/react-query";
+
 import LoadingSpinner from "../../components/LoadingSpinner";
 import PatientSearchAutocomplete from "../../components/PatientSearchAutocomplete";
 import { CACHE_KEY_OrdonanceId, CACHE_KEY_PATIENTS } from "../../constants";
@@ -62,7 +62,7 @@ const OperationOrdonance: React.FC<CliniquerensignementProps> = ({
     { id: number; name: string }[]
   >([]);
   const [iserror, setIsError] = useState(false);
-  const queryClient = useQueryClient();
+
   const { showSnackbar } = useSnackbarStore();
   const { print, Printable } = usePrint();
 
@@ -120,7 +120,6 @@ const OperationOrdonance: React.FC<CliniquerensignementProps> = ({
       } else {
         await editUser(formData, parseInt(ordonanceData?.id!));
       }
-      queryClient.invalidateQueries({ queryKey: ["ordonance"] });
     } catch (error: any) {
       const message =
         error instanceof AxiosError
@@ -133,11 +132,6 @@ const OperationOrdonance: React.FC<CliniquerensignementProps> = ({
   const createUser = async (formData: Ordonance) => {
     return await Addmutation.mutateAsync(formData, {
       onSuccess: () => {
-        queryClient.invalidateQueries(CACHE_KEY_OrdonanceId);
-
-        queryClient.invalidateQueries({
-          predicate: (query) => query.queryKey[0] === "patients",
-        });
         print(() => {
           onNext();
         });
@@ -154,7 +148,7 @@ const OperationOrdonance: React.FC<CliniquerensignementProps> = ({
   const editUser = async (formData: Ordonance, ordonanceID: number) => {
     if (!formData.medicine?.length) {
       await deleteItem(parseInt(operation_id!), deleteOrdonanceApiClient);
-      queryClient.invalidateQueries(CACHE_KEY_OrdonanceId);
+
       onNext();
       return;
     }
@@ -162,11 +156,6 @@ const OperationOrdonance: React.FC<CliniquerensignementProps> = ({
       { data: formData, id: ordonanceID },
       {
         onSuccess: () => {
-          queryClient.invalidateQueries(CACHE_KEY_OrdonanceId);
-
-          queryClient.invalidateQueries({
-            predicate: (query) => query.queryKey[0] === "patients",
-          });
           print(() => {
             onNext();
           });

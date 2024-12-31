@@ -122,7 +122,82 @@ class XrayController extends Controller
         }
     }
 
+    public function updateXrayStepper(Request $request, $id)
+    {
+        try {
+            // Validate request data
+            $validatedData = $request->all();
 
+            $xrayItems = $validatedData['xrays'] ?? [];
+            $totalPrice = 0;
+
+            Xray::where('operation_id', $id)->delete();
+
+            foreach ($xrayItems as $xray) {
+                // Process each xray entry
+                foreach ($xray['xray_name'] as $type) {
+                    $xrayPreference = Xraypreference::where('xray_name', $type)->first();
+
+                    if (!$xrayPreference) {
+                        return $this->error(null, "Type de radiographie '{$type}' non trouvé dans les préférences", 404);
+                    }
+
+                    // Calculate the total price
+                    $totalPrice += $xrayPreference->price;
+
+                    // Prepare and store X-ray data
+                    $xrayData = [
+                        'patient_id' => $validatedData['patient_id'],
+                        'operation_id' => $id,
+                        'xray_name' => $type,
+                        'view_type' => implode(',', $xray['view_type']), // Combine view types into a string
+                        'body_side' => isset($xray['body_side']) ? implode(',', $xray['body_side']) : null,
+                        'type' => $validatedData['type'] ?? 'xray',
+                        'note' => $validatedData['note'] ?? null,
+                        'price' => $xrayPreference->price,
+                        'xray_preference_id' => $xrayPreference->id,
+                    ];
+
+                    Xray::create($xrayData);
+                }
+            }
+            $operation = Operation::where('id', $id)->first();
+            // Update the operation total cost
+            $operation->update(['total_cost' => $totalPrice]);
+
+
+            $waiting =   WaitingRoom::where('patient_id', $request->patient_id)->first();
+            if ($waiting) {
+                $waiting->update([
+                    'status' => 'current'
+                ]);
+            } else {
+                WaitingRoom::create([
+                    'status' => 'current',
+                    'patient_id'
+                    => $request->patient_id,
+                    'entry_time' => Carbon::now()
+                ]);
+            }
+            $nurses = User::where('role', 'nurse')->get();
+            $patient = Patient::where('id', $request->input('patient_id'))->first(['nom', 'prenom']);
+
+            foreach ($nurses as $nurse) {
+                Notification::create([
+                    'user_id' => $nurse->id,
+                    'title' => 'Une radiographie est disponible de ' . $patient->nom . ' ' . $patient->prenom,
+                    'is_read' => false,
+                    'type' => 'xray',
+                    "target_id" =>  $operation->id
+                ]);
+            }
+            return $this->success($operation->id, 'Radiographies enregistrées avec succès', 201);
+        } catch (\Throwable $th) {
+            Log::error('Error storing x-ray data: ' . $th->getMessage());
+
+            return $this->error($th->getMessage(), 'Une erreur s\'est produite lors de l\'enregistrement des radiographies', 500);
+        }
+    }
 
 
 
@@ -188,7 +263,7 @@ class XrayController extends Controller
             foreach ($updatedXrays as $xray) {
                 Xray::where('id', $xray['id'])->update([
                     'price' => $xray['price'],
-                    'xray_type' => $xray['xray_type'],
+                    'xray_name' => $xray['xray_type'],
                 ]);
                 Log::info('Updated X-ray', ['id' => $xray['id'], 'data' => $xray]);
                 $operation->total_cost += $xray['price'];
@@ -296,13 +371,12 @@ class XrayController extends Controller
 
     public function insertWihtoutxray(Request $request)
     {
-        // Step 1: Create a new operation
-        $operation = Operation::create([
+
+        $operation = isset($request->operation_id) ? Operation::findorfail($request->operation_id) : Operation::create([
             'patient_id' => $request->input('patient_id'),
             'total_cost' => 0, // Initialize total_cost to 0
             'is_paid' => 0,
             'note' => null,
-
         ]);
         // Step 2: Handle treatment status
         $isDone = $request->input('treatment_isdone', 0);

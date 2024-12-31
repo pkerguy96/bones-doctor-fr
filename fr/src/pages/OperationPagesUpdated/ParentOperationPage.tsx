@@ -16,12 +16,14 @@ const ParentOperationPage = () => {
   const [activeStep, setActiveStep] = useState(0);
   const queryClient = useQueryClient();
 
-  const handleNext = () => {
-    setActiveStep((prevStep) => prevStep + 1);
+  const handleNext = (step?: number) => {
+    setActiveStep((prevStep) => step ?? prevStep + 1);
+    queryClient.clear();
   };
 
   const handleBack = () => {
     setActiveStep((prevStep) => (prevStep > 0 ? prevStep - 1 : prevStep));
+    queryClient.clear();
   };
 
   return (
@@ -34,7 +36,9 @@ const ParentOperationPage = () => {
       {activeStep === 2 && (
         <BloodTest onNext={handleNext} onBack={handleBack} />
       )}
-      {activeStep === 3 && <DocumentPage onNext={handleNext} />}
+      {activeStep === 3 && (
+        <DocumentPage onNext={handleNext} onBack={handleBack} />
+      )}
       {activeStep === 4 && (
         <AppointmentStepPage onNext={handleNext} onBack={handleBack} />
       )}

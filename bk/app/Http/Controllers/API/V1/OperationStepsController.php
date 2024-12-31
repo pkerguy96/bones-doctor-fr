@@ -58,7 +58,7 @@ class OperationStepsController extends Controller
             ], 500);
         }
     }
-
+    public function UpdateXrays() {}
     /* Step 2 Paraclinique insert */
     public function StoreParaclinique(StoreXrayRequest $request)
     {
@@ -212,13 +212,16 @@ class OperationStepsController extends Controller
     public function fetchXrays($operation_id)
     {
         try {
-            $data = Xray::where('operation_id', $operation_id)
-                ->select('id', 'xray_name', 'view_type', 'body_side', 'price')
+            $xray = Xray::where('operation_id', $operation_id)
+                ->select('id', 'xray_name', 'view_type', 'body_side', 'price',)
                 ->get();
-            if ($data->isEmpty()) {
+            $note = Operation::where('id', $operation_id)->select('note')->firstOrFail();
+
+            if ($xray->isEmpty()) {
                 return $this->success([], 'No X-rays found', 200);
             }
-            return $this->success($data, null, 200);
+
+            return $this->success(["xray" => $xray, "note" => $note->note], null, 200);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch X-rays: ' . $e->getMessage()], 500);
         }

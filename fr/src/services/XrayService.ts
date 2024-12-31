@@ -32,6 +32,7 @@ export interface XrayPreferencesByCategory {
   }[];
 }
 export const xrayApiClient = new APIClient<XrayProps>("xray");
+export const updateXrayClientApi = new APIClient<any>("updateXrayStepper");
 export const updateParacliniqueApiClient = new APIClient<any>(
   "updateParaclinique"
 );

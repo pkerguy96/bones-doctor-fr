@@ -1,9 +1,12 @@
+//@ts-nocheck
+
 import {
   Autocomplete,
   Box,
   Button,
   Chip,
   FormControl,
+  IconButton,
   Paper,
   TextField,
   Typography,
@@ -24,6 +27,7 @@ import addGlobal from "../../hooks/addGlobal";
 import {
   XrayProps,
   fetchxrayfirststep,
+  updateXrayClientApi,
   xrayApiClient,
 } from "../../services/XrayService";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -49,7 +53,8 @@ import getGlobalById from "../../hooks/getGlobalById";
 import CheckAction from "../../components/CheckAction";
 
 const XrayDemand = ({ onNext }) => {
-  const { addOrUpdateOperation, findPatientById } = useOperationStore();
+  const { addOrUpdateOperation, findPatientById, clearPatientOperation } =
+    useOperationStore();
 
   const queryClient = useQueryClient();
   const { showSnackbar } = useSnackbarStore();
@@ -62,7 +67,7 @@ const XrayDemand = ({ onNext }) => {
   const patient_id = queryParams.get("id");
   const operation_id = queryParams.get("operation_id");
   const [xrays, setXrays] = useState([]);
-  const patient = findPatientById(patient_id);
+  const [patient, _] = useState(findPatientById(patient_id));
   const { data, refetch, isLoading } = getGlobal(
     {} as XrayPreferencesResponse,
     CACHE_KEY_XrayPreferences,
@@ -78,7 +83,7 @@ const XrayDemand = ({ onNext }) => {
         parseInt(operation_id!)
       )
     : {};
-
+  const updateMutation = updateItem({} as any, updateXrayClientApi);
   if (!patient_id) {
     return (
       <Typography variant="h6" color="error" align="center">
@@ -104,22 +109,52 @@ const XrayDemand = ({ onNext }) => {
       xrays, // Grouped X-rays
       note: data.note, // Optional note
     };
+    if (create) {
+      if (!xrays.length) {
+        return showSnackbar(
+          "Veuillez sélectionner au moins une radiographie",
+          "warning"
+        );
+      }
+      await addMutation.mutateAsync(payload, {
+        onSuccess: (data: any) => {
+          const operationId = data.data;
 
-    await addMutation.mutateAsync(payload, {
-      onSuccess: (data: any) => {
-        const operationId = data.data;
-
-        navigate(`?id=${patient_id}&operation_id=${operationId}`, {
-          replace: true,
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["Waitinglist"],
-          exact: false,
-        });
-        addOrUpdateOperation(operationId, patient_id);
-        onNext();
-      },
-    });
+          navigate(`?id=${patient_id}&operation_id=${operationId}&withxrays`, {
+            replace: true,
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["Waitinglist"],
+            exact: false,
+          });
+          addOrUpdateOperation(operationId, patient_id);
+          onNext();
+        },
+      });
+    } else {
+      await updateMutation.mutateAsync(
+        { data: payload, id: Number(operation_id) },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries(CACHE_KEY_XraysWithCategoryBACK);
+            queryClient.invalidateQueries({
+              queryKey: ["Waitinglist"],
+              exact: false,
+            });
+            addOrUpdateOperation(operation_id, patient_id);
+            navigate(
+              `?id=${patient_id}&operation_id=${operation_id}${
+                xrays.length ? "&withxrays" : ""
+              }`,
+              {
+                replace: true,
+              }
+            );
+            onNext();
+          },
+        }
+      );
+    }
   };
 
   const addRow = () => {
@@ -164,30 +199,33 @@ const XrayDemand = ({ onNext }) => {
     );
   };
 
-  /*   useEffect(() => {
-    console.log("====================================");
-    console.log(patient);
-    console.log("====================================");
-    if (patient && !hasCalledNext.current) {
-      const url = `?operation_id=${patient.operationId}&id=${patient.patientId}`;
-      navigate(url, {
-        replace: true,
-      });
-
-      onNext();
-      hasCalledNext.current = true;
-    }
-  }, [patient]); */
-
   const create = CheckAction(() => {
     setXrays(
-      HistoryXray.map((xray: any) => ({
+      HistoryXray?.xray.map((xray: any, index: number) => ({
+        id: index,
         body_side: xray.body_side ? xray.body_side.split(",") : [],
         view_type: xray.view_type ? xray.view_type.split(",") : [],
         xray_name: [xray.xray_name],
       }))
     );
+    setValue("note", HistoryXray?.note);
+    clearPatientOperation(patient_id);
   }, HistoryXray);
+
+  useEffect(() => {
+    if (patient && create) {
+      const timeoutId = setTimeout(() => {
+        const url = `?operation_id=${patient.operationId}&id=${patient.patientId}&withxrays`;
+        navigate(url, {
+          replace: true,
+        });
+        onNext(1);
+      }, 500); // 500ms delay
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [patient, create]);
+
   if (isLoading) return <LoadingSpinner />;
 
   return (
@@ -215,11 +253,14 @@ const XrayDemand = ({ onNext }) => {
                     className="bg-white"
                     id="tags-filled"
                     options={data.map((option) => option.xray_name)}
-                    defaultValue=""
                     value={field.value || ""}
+                    getOptionLabel={(option) => {
+                      return String(option);
+                    }}
                     onChange={(event, newValue) =>
                       field.onChange(newValue || "")
                     }
+                    isOptionEqualToValue={(option, value) => option === value}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -350,13 +391,13 @@ const XrayDemand = ({ onNext }) => {
                     <TableCell>{row.view_type?.join(", ")}</TableCell>
                     <TableCell>{row.body_side?.join(", ") ?? ""}</TableCell>
                     <TableCell>
-                      <Button onClick={() => removeXRay(row.id)}>
+                      <IconButton onClick={() => removeXRay(row.id)}>
                         <DeleteOutlineIcon
                           color="error"
                           className="pointer-events-none"
                           fill="currentColor"
                         />
-                      </Button>
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -369,6 +410,7 @@ const XrayDemand = ({ onNext }) => {
             <Controller
               name="note"
               control={control}
+              defaultValue=""
               render={({ field }) => (
                 <TextField
                   {...field}

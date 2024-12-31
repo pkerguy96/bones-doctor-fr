@@ -130,7 +130,7 @@ class PatientDetailResource extends JsonResource
         $xrayTypes = optional($operation->xray)->map(function ($xray) {
             return [
                 'id' => $xray->id,
-                'operation_type' => $xray->xray_type ?? 'X-Ray',
+                'operation_type' => $xray->xray_name ?? 'X-Ray',
                 'price' => $xray->price ?? null,
                 'date' => optional($xray->created_at)->format('Y-m-d H:i:s'),
                 'source' => 'Radiographie',

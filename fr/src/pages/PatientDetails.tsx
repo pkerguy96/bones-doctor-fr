@@ -12,7 +12,7 @@ import patientdetailsApiClient, {
   Patientinfo,
 } from "../services/PatientDetailsService";
 import { CACHE_KEY_PatientDetails } from "../constants";
-import RenseignementsVerticalTimeline from "../components/PatientDetails/RenseignementsVerticalTimeline";
+
 const PatientDetails = React.memo(() => {
   const [activeBtn, setActiveBtn] = useState("three");
 
@@ -43,7 +43,7 @@ const PatientDetails = React.memo(() => {
         <PatientsdetailsComponent info={data} isLoading={isLoading} />
         <Box className="w-full bg-white shadow-md gap-4 flex flex-col rounded-lg p-4">
           <Box className="w-full rounded-md overflow-hidden flex">
-            {["one", "three", "four"].map((btnName) => (
+            {["one", "three"].map((btnName) => (
               <Box
                 key={btnName}
                 component={"button"}
@@ -87,20 +87,6 @@ const PatientDetails = React.memo(() => {
               ) : (
                 <OperationVerticalTimeline
                   Operations={operations}
-                  isLoading={isLoading}
-                />
-              )}
-            </>
-          )}
-          {activeBtn === "four" && (
-            <>
-              {operationNotes?.length === 0 ? (
-                <p className="flex justify-center font-bold">
-                  Aucune opération enregistrée pour ce patient.
-                </p>
-              ) : (
-                <RenseignementsVerticalTimeline
-                  Operations={operationNotes}
                   isLoading={isLoading}
                 />
               )}

@@ -97,6 +97,7 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\API\V1', 'm
     /* xray */
     route::apiResource('xray', XrayController::class);
     Route::get('showpatientxrays/{id}', [XrayController::class, 'showpatientxrays']);
+    Route::patch('updateXrayStepper/{id}', [XrayController::class, 'updateXrayStepper']);
     Route::get('getxrayCategorys', [Xraypreferences::class, 'getxrayCategorys']);
     Route::delete('deleteCategory/{id}', [Xraypreferences::class, 'deleteCategory']);
     Route::get('getXrayPreferencesWithCategories', [Xraypreferences::class, 'getXrayPreferencesWithCategories']);

@@ -6,10 +6,17 @@ import {
   FormControlLabel,
   FormGroup,
   Button,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import { useRef, useState } from "react";
+import { CliniquerensignementProps } from "../OperationPagesUpdated/Cliniquerensignement";
+import KeyboardBackspaceOutlinedIcon from "@mui/icons-material/KeyboardBackspaceOutlined";
 
-const DocumentPage = ({ onNext }) => {
+const DocumentPage: React.FC<CliniquerensignementProps> = ({
+  onNext,
+  onBack,
+}) => {
   const ahmedtag = useRef<HTMLAnchorElement | null>(null);
 
   const [selectedDocuments1, setSelectedDocuments1] = useState([
@@ -103,11 +110,33 @@ const DocumentPage = ({ onNext }) => {
         noValidate
         autoComplete="off"
         /*  onSubmit={handleSubmit(onSubmit)} */
-        className="grid grid-rows-1 grid-cols-1 lg:grid-cols-2 gap-4"
+        className="grid grid-rows-1 grid-cols-1 lg:grid-cols-2 gap-6 relative"
       >
+        <Tooltip title="Retour">
+          <IconButton className="!absolute -top-1 left-0" onClick={onBack}>
+            <KeyboardBackspaceOutlinedIcon
+              color="primary"
+              className="pointer-events-none"
+              fill="currentColor"
+            />
+          </IconButton>
+        </Tooltip>
+        <Box className="flex justify-center lg:col-span-2">
+          <Typography
+            id="modal-modal-title"
+            component="h2"
+            className="text-center !text-2xl font-bold"
+          >
+            Documents
+          </Typography>
+        </Box>
         <Box className="flex flex-col gap-4">
-          <Box className="flex justify-between">
-            <Typography id="modal-modal-title" variant="h6" component="h2">
+          <Box className="flex justify-start">
+            <Typography
+              id="modal-modal-title"
+              component="h2"
+              className="text-center !text-lg font-bold"
+            >
               fiche des informations
             </Typography>
           </Box>
@@ -127,8 +156,12 @@ const DocumentPage = ({ onNext }) => {
           </FormGroup>
         </Box>
         <Box className="flex flex-col gap-4">
-          <Box className="flex justify-between">
-            <Typography id="modal-modal-title" variant="h6" component="h2">
+          <Box className="flex justify-start">
+            <Typography
+              id="modal-modal-title"
+              component="h2"
+              className="text-center !text-lg font-bold"
+            >
               lettre de reeducation
             </Typography>
           </Box>

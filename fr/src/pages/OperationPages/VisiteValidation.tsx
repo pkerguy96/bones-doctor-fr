@@ -52,6 +52,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { CliniquerensignementProps } from "../OperationPagesUpdated/Cliniquerensignement";
 import KeyboardBackspaceOutlinedIcon from "@mui/icons-material/KeyboardBackspaceOutlined";
 import { SupplierTinyData } from "../../services/SupplierService";
+import useOperationStore from "../../zustand/usePatientOperation";
 
 interface RowData {
   id?: string | number;
@@ -72,7 +73,7 @@ const VisiteValidation: React.FC<CliniquerensignementProps> = ({
 
   const navigate = useNavigate();
   const { showSnackbar } = useSnackbarStore();
-
+  const { clearPatientOperation } = useOperationStore();
   const queryClient = useQueryClient();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -118,7 +119,9 @@ const VisiteValidation: React.FC<CliniquerensignementProps> = ({
   const patchOperation = (index, value, type) => {
     setOperations((old) =>
       old.map((op, idx) => {
-        if (idx === index) op[type] = value;
+        if (idx === index && op[type] !== value) {
+          return { ...op, [type]: value };
+        }
         return op;
       })
     );
@@ -127,7 +130,9 @@ const VisiteValidation: React.FC<CliniquerensignementProps> = ({
   const patchConsomable = (index, value, type) => {
     setConsomables((old) =>
       old.map((op, idx) => {
-        if (idx === index) op[type] = value;
+        if (idx === index && op[type] !== value) {
+          return { ...op, [type]: value };
+        }
         return op;
       })
     );
@@ -161,7 +166,6 @@ const VisiteValidation: React.FC<CliniquerensignementProps> = ({
     }
 
     try {
-      // Check if operation_id exists
       if (withxrays !== null) {
         const formData = {
           operation_id: operation_id,
@@ -188,6 +192,7 @@ const VisiteValidation: React.FC<CliniquerensignementProps> = ({
           {
             onSuccess: (data) => {
               queryClient.clear();
+              clearPatientOperation(patient_id);
               showSnackbar(
                 "L'opération a été enregistrée avec succès",
                 "success"
@@ -208,13 +213,14 @@ const VisiteValidation: React.FC<CliniquerensignementProps> = ({
           treatment_isdone: isdone ?? 1,
           consomables: consomables,
           rows: operations,
+          operation_id: operation_id,
         };
+
         await addmutation.mutateAsync(formData, {
           onSuccess: (data) => {
-            queryClient.invalidateQueries({
-              queryKey: ["operation"],
-              exact: false,
-            });
+            clearPatientOperation(patient_id);
+            queryClient.clear();
+
             showSnackbar(
               "L'opération a été enregistrée avec succès",
               "success"
@@ -249,10 +255,11 @@ const VisiteValidation: React.FC<CliniquerensignementProps> = ({
   }, [extraData]);
 
   const xrayString = JSON.stringify(xrayRows);
+  const extraString = JSON.stringify(extraRows);
 
   useEffect(() => {
     setOperations([...xrayRows, ...extraRows]);
-  }, [extraRows, xrayString]);
+  }, [extraString, xrayString]);
 
   if (isLoading1 || isloading2 || isLoading3) return <LoadingSpinner />;
   return (
@@ -319,14 +326,14 @@ const VisiteValidation: React.FC<CliniquerensignementProps> = ({
                   {operations.length ? (
                     operations.map((field, index) => (
                       <TableRow
-                        key={field.id}
+                        key={field.id ?? "new-" + index}
                         className="border-t border-gray-300"
                       >
                         <TableCell component="th" scope="row">
                           <FormControl className="w-full md:flex-1">
                             <TextField
                               {...field}
-                              id={`xray_type_${field.id}`}
+                              id={`xray_type_${field.id ?? "new-" + index}`}
                               type="text"
                               value={field.xray_type}
                               onChange={(event) =>
@@ -343,7 +350,7 @@ const VisiteValidation: React.FC<CliniquerensignementProps> = ({
                           <FormControl className="w-full md:flex-1">
                             <TextField
                               {...field}
-                              id={`price_${field.id}`}
+                              id={`price_${field.id ?? "new-" + index}`}
                               type="number"
                               value={field.price}
                               onChange={(event) =>

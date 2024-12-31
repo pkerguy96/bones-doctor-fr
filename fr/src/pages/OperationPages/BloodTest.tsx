@@ -36,7 +36,7 @@ import {
 } from "../../services/XrayService";
 import CheckAction from "../../components/CheckAction";
 import deleteItem from "../../hooks/deleteItem";
-import { useQueryClient } from "@tanstack/react-query";
+
 import { useSnackbarStore } from "../../zustand/useSnackbarStore";
 import BloodTestSearchAutocomplete from "../../components/BloodTestSearchAutocomplete";
 
@@ -59,7 +59,7 @@ const BloodTest: React.FC<CliniquerensignementProps> = ({ onNext, onBack }) => {
   const [row, setRow] = useState<any>();
   const { handleSubmit } = useForm<Props>();
   const { print, Printable } = usePrint();
-  const queryClient = useQueryClient();
+
   const { showSnackbar } = useSnackbarStore();
   const addMutation = addGlobal({} as BloodTestProps, bloodTestApiClient);
   const updateMutation = addGlobal(
@@ -110,8 +110,6 @@ const BloodTest: React.FC<CliniquerensignementProps> = ({ onNext, onBack }) => {
         }
         addMutation.mutateAsync(formatedData, {
           onSuccess: (data: any) => {
-            queryClient.invalidateQueries(CACHE_KEY_OperationBloodTest);
-
             setRow(data.data);
           },
           onError: (error) => {
@@ -121,15 +119,13 @@ const BloodTest: React.FC<CliniquerensignementProps> = ({ onNext, onBack }) => {
       } else {
         if (!fields.length) {
           await deleteItem(parseInt(operationId!), deletebloodtestApiClient);
-          queryClient.invalidateQueries(CACHE_KEY_OperationBloodTest);
+
           onNext();
           return;
         }
 
         updateMutation.mutateAsync(formatedData, {
           onSuccess: (data: any) => {
-            queryClient.invalidateQueries(CACHE_KEY_OperationBloodTest);
-
             setRow(data.data);
           },
           onError: (error) => {

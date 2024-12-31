@@ -275,11 +275,10 @@ class DashboardKpisController extends Controller
 
     public function formatWeek($datestr)
     {
-        $date = new \DateTime($datestr);
-        $dayOfWeek = $date->format('N');
-        $dayOfMonth = $date->format('j');
-        $startDayOfWeek = (new \DateTime($date->format('Y-m-01')))->format('N');
-        return (int) ceil(($dayOfMonth + $startDayOfWeek - $dayOfWeek) / 7);
+        $date = Carbon::parse($datestr);
+        $firstMonday = Carbon::parse($date->format('Y-m-01'))->startOfWeek(Carbon::MONDAY);
+        $daysDifference = $date->diffInDays($firstMonday);
+        return (int) ceil(($daysDifference + 1) / 7);
     }
 
     public function groupKey($model, $type)
